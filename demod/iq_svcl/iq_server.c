@@ -33,6 +33,7 @@
 #define OPT_FFT_CLSV 2  // server (client request)
 #define OPT_FFT_CLNT 3  // server -> client
 
+static int option_dc = 1;
 static int option_dbg = 0;
 
 static int tcp_eof = 0;
@@ -201,6 +202,7 @@ static void *thd_IF(void *targs) { // pcm_t *pcm, double xlt_fq
 
     dsp.thd = &(tharg->thd);
 
+    dsp.opt_dc = option_dc;
     dsp.opt_dbg = option_dbg;
 
     // default: bps_out = bps_in
@@ -308,6 +310,7 @@ static void *thd_FFT(void *targs) {
 
     dsp.thd = &(tharg->thd);
 
+    dsp.opt_dc = option_dc;
     dsp.opt_dbg = option_dbg;
     dsp.bps_out = pcm->bps_out;
 
@@ -513,6 +516,9 @@ int main(int argc, char **argv) {
     while ((*argv) && (!wavloaded)) {
         if (strcmp(*argv, "--dbg") == 0) {
             option_dbg = 1;
+        }
+        if (strcmp(*argv, "--dc0") == 0) {
+            option_dc = 0;
         }
         else if (strcmp(*argv, "--port") == 0) {
             int port = 0;

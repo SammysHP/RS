@@ -74,6 +74,7 @@ typedef struct {
     float complex *ex; // exp_lut
 
     int opt_dbg;
+    int opt_dc;
 
     thd_t *thd;
 } dsp_t;
