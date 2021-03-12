@@ -35,6 +35,7 @@
 
 static int option_dc = 1;
 static int option_dbg = 0;
+static int option_avgdB = 0;
 
 static int tcp_eof = 0;
 
@@ -294,6 +295,9 @@ static void *thd_FFT(void *targs) {
     float complex *z = NULL;
     float *db     = NULL;
     float *sum_db = NULL;
+    float *avg_db = NULL;
+    float *avg_rZ = NULL;
+    float *p_dB = NULL;
 
     dsp_t dsp = {0};  //memset(&dsp, 0, sizeof(dsp));
 
@@ -331,7 +335,11 @@ static void *thd_FFT(void *targs) {
 
     db     = calloc(dsp.DFT.N+1, sizeof(float));  if (db     == NULL) goto exit_thread;
     sum_db = calloc(dsp.DFT.N+1, sizeof(float));  if (sum_db == NULL) goto exit_thread;
+    avg_db = calloc(dsp.DFT.N+1, sizeof(float));  if (avg_db == NULL) goto exit_thread;
+    avg_rZ = calloc(dsp.DFT.N+1, sizeof(float));  if (avg_rZ == NULL) goto exit_thread;
 
+    p_dB = sum_db;
+    if (option_avgdB) p_dB = avg_db;
 
     int j, n = 0;
     int len = dsp.DFT.N / dsp.decM;
@@ -383,6 +391,7 @@ static void *thd_FFT(void *targs) {
 
                     db_power(&(dsp.DFT), dsp.DFT.Z, db);
                     for (j = 0; j < dsp.DFT.N; j++) sum_db[j] += db[j];
+                    for (j = 0; j < dsp.DFT.N; j++) avg_rZ[j] += cabs(dsp.DFT.Z[j]);
 
                     sum_n++;
                     n_fft = 0;
@@ -390,6 +399,9 @@ static void *thd_FFT(void *targs) {
                 if (sum_n*fft_step*mlen >= sec*dsp.sr_base) {
 
                     for (j = 0; j < dsp.DFT.N; j++) sum_db[j] /= (float)sum_n;
+                    for (j = 0; j < dsp.DFT.N; j++) avg_rZ[j] /= dsp.DFT.N*(float)sum_n; // N2=N
+                    for (j = 0; j < dsp.DFT.N; j++) avg_db[j] = 20.0 * log10(avg_rZ[j]+1e-20);
+
 
                     pthread_mutex_lock( (dsp.thd)->mutex );
                     fprintf(FPOUT, "<%d: FFT>\n", (dsp.thd)->tn);
@@ -404,7 +416,7 @@ static void *thd_FFT(void *targs) {
                         l = write(tharg->fd, sendln, sendln_len);
                         for (j = dsp.DFT.N/2; j < dsp.DFT.N/2 + dsp.DFT.N; j++) {
                             memset(sendln, 0, LINELEN+1);
-                            snprintf(sendln, LINELEN, "%+11.8f;%7.2f\n", bin2fq(&(dsp.DFT), j % dsp.DFT.N), sum_db[j % dsp.DFT.N]);
+                            snprintf(sendln, LINELEN, "%+11.8f;%7.2f\n", bin2fq(&(dsp.DFT), j % dsp.DFT.N), p_dB[j % dsp.DFT.N]);
                             sendln_len = strlen(sendln);
                             l = write(tharg->fd, sendln, sendln_len);
                         }
@@ -416,7 +428,7 @@ static void *thd_FFT(void *targs) {
                         if (fpo != NULL) {
                             fprintf(fpo, "# <freq/sr>;<dB>  ##  sr:%d , N:%d\n", dsp.DFT.sr, dsp.DFT.N);
                             for (j = dsp.DFT.N/2; j < dsp.DFT.N/2 + dsp.DFT.N; j++) {
-                                fprintf(fpo, "%+11.8f;%7.2f\n", bin2fq(&(dsp.DFT), j % dsp.DFT.N), sum_db[j % dsp.DFT.N]);
+                                fprintf(fpo, "%+11.8f;%7.2f\n", bin2fq(&(dsp.DFT), j % dsp.DFT.N), p_dB[j % dsp.DFT.N]);
                             }
                             fclose(fpo);
                         }
@@ -469,6 +481,8 @@ static void *thd_FFT(void *targs) {
     if (z) { free(z); z = NULL; }
     if (db) { free(db); db = NULL; }
     if (sum_db) { free(sum_db); sum_db = NULL; }
+    if (avg_db) { free(avg_db); avg_db = NULL; }
+    if (avg_rZ) { free(avg_rZ); avg_rZ = NULL; }
 
     reset_blockread(&dsp);
     (dsp.thd)->used = 0;
@@ -519,6 +533,9 @@ int main(int argc, char **argv) {
         }
         if (strcmp(*argv, "--dc0") == 0) {
             option_dc = 0;
+        }
+        if (strcmp(*argv, "--avg_db") == 0) {
+            option_avgdB = 1;
         }
         else if (strcmp(*argv, "--port") == 0) {
             int port = 0;
