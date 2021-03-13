@@ -531,10 +531,10 @@ int main(int argc, char **argv) {
         if (strcmp(*argv, "--dbg") == 0) {
             option_dbg = 1;
         }
-        if (strcmp(*argv, "--dc0") == 0) {
+        else if (strcmp(*argv, "--dc0") == 0) {
             option_dc = 0;
         }
-        if (strcmp(*argv, "--avg_db") == 0) {
+        else if (strcmp(*argv, "--avg_db") == 0) {
             option_avgdB = 1;
         }
         else if (strcmp(*argv, "--port") == 0) {
