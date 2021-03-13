@@ -35,7 +35,7 @@
 
 static int option_dc = 1;
 static int option_dbg = 0;
-static int option_avgdB = 0;
+static int option_sumdB = 0;
 
 static int tcp_eof = 0;
 
@@ -338,8 +338,8 @@ static void *thd_FFT(void *targs) {
     avg_db = calloc(dsp.DFT.N+1, sizeof(float));  if (avg_db == NULL) goto exit_thread;
     avg_rZ = calloc(dsp.DFT.N+1, sizeof(float));  if (avg_rZ == NULL) goto exit_thread;
 
-    p_dB = sum_db;
-    if (option_avgdB) p_dB = avg_db;
+    p_dB = avg_db;
+    if (option_sumdB) p_dB = sum_db;
 
     int j, n = 0;
     int len = dsp.DFT.N / dsp.decM;
@@ -400,7 +400,7 @@ static void *thd_FFT(void *targs) {
 
                     for (j = 0; j < dsp.DFT.N; j++) sum_db[j] /= (float)sum_n;
                     for (j = 0; j < dsp.DFT.N; j++) avg_rZ[j] /= dsp.DFT.N*(float)sum_n; // N2=N
-                    for (j = 0; j < dsp.DFT.N; j++) avg_db[j] = 20.0 * log10(avg_rZ[j]+1e-20);
+                    for (j = 0; j < dsp.DFT.N; j++) avg_db[j] = 20.0*log10(avg_rZ[j]+1e-20);
 
 
                     pthread_mutex_lock( (dsp.thd)->mutex );
@@ -534,8 +534,8 @@ int main(int argc, char **argv) {
         else if (strcmp(*argv, "--dc0") == 0) {
             option_dc = 0;
         }
-        else if (strcmp(*argv, "--avg_db") == 0) {
-            option_avgdB = 1;
+        else if (strcmp(*argv, "--sum_db") == 0) {
+            option_sumdB = 1;
         }
         else if (strcmp(*argv, "--port") == 0) {
             int port = 0;
