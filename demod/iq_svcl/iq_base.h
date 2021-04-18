@@ -34,7 +34,10 @@ typedef struct {
     double xlt_fq;
     float complex *blk;
     int used;
+    //
     int fft;
+    int stop_fft;
+    int fft_num;
 } thd_t;
 
 
@@ -74,7 +77,6 @@ typedef struct {
     float complex *ex; // exp_lut
 
     int opt_dbg;
-    int opt_dc;
 
     thd_t *thd;
 } dsp_t;
@@ -98,6 +100,7 @@ typedef struct {
     thd_t thd;
     int fd;
     char *fname;
+    FILE *fpo;
 } thargs_t;
 
 

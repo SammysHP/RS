@@ -240,7 +240,8 @@ int iq_dc_init(pcm_t *pcm) {
     if (pcm->decM > 1) {
         IQdc.maxlim *= pcm->decM;
         IQdc.maxcnt *= pcm->decM;
-    } // IQdc.maxlim == pcm->sr_base
+    }
+
     return 0;
 }
 
@@ -335,16 +336,14 @@ static int f32_cblk(dsp_t *dsp) {
 
         dsp->thd->blk[n] = (x-IQdc.avgIQx) + I*(y-IQdc.avgIQy);
 
-        if (dsp->opt_dc == 1) {
-            IQdc.sumIQx += x;
-            IQdc.sumIQy += y;
-            IQdc.cnt += 1;
-            if (IQdc.cnt == IQdc.maxcnt) {
-                IQdc.avgIQx = IQdc.sumIQx/(float)IQdc.maxcnt;
-                IQdc.avgIQy = IQdc.sumIQy/(float)IQdc.maxcnt;
-                IQdc.sumIQx = 0; IQdc.sumIQy = 0; IQdc.cnt = 0;
-                if (IQdc.maxcnt < IQdc.maxlim) IQdc.maxcnt *= 2;
-            }
+        IQdc.sumIQx += x;
+        IQdc.sumIQy += y;
+        IQdc.cnt += 1;
+        if (IQdc.cnt == IQdc.maxcnt) {
+            IQdc.avgIQx = IQdc.sumIQx/(float)IQdc.maxcnt;
+            IQdc.avgIQy = IQdc.sumIQy/(float)IQdc.maxcnt;
+            IQdc.sumIQx = 0; IQdc.sumIQy = 0; IQdc.cnt = 0;
+            if (IQdc.maxcnt < IQdc.maxlim) IQdc.maxcnt *= 2;
         }
     }
     if (len < BL) bufeof = 1;
